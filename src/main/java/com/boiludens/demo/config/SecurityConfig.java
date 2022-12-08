@@ -1,15 +1,18 @@
 package com.boiludens.demo.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.preauth.RequestHeaderAuthenticationFilter;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -18,22 +21,19 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableMethodSecurity(securedEnabled = true)
 
 public class SecurityConfig {
-
+    @Autowired
+    JWTFilter jwtFilter;
     @Bean
     public SecurityFilterChain configure(HttpSecurity http) throws Exception {
-        return http
-//                .authorizeHttpRequests(authorize ->
-//                        authorize.requestMatchers("/graphql", "/graphiql").permitAll())
-//                .formLogin(withDefaults())
-//                .build();
-         .csrf(csrf -> csrf.disable()) // (1)
-                .authorizeRequests( auth -> {
-                    auth.requestMatchers("/graphql", "/graphiql").permitAll(); // (2)
-                })
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // (3)
-                .httpBasic(withDefaults()) // (4)
-                .build();
 
+
+        return http
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests( auth -> { auth.requestMatchers("/graphql", "/graphiql").permitAll(); })
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtFilter, RequestHeaderAuthenticationFilter.class)
+                .httpBasic(withDefaults())
+                .build();
     }
 
     @Bean
